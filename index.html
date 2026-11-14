@@ -1,82 +1,614 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="robots" content="noindex,nofollow">
-<title>암웨이 재고 집계</title>
-<style>
-:root{--bg:#f5f6f4;--surface:#fff;--line:#dfe1dd;--fg:#1a1d1a;--muted:#686d68;--accent:#1f6f4a;--accent-soft:#e4f0e9;--crit:#b03030;
---font:"Pretendard","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-@media (prefers-color-scheme:dark){:root{--bg:#10130f;--surface:#191d18;--line:#2d332c;--fg:#e8ebe6;--muted:#9aa297;--accent:#54c08a;--accent-soft:#1c2d24;--crit:#e07070;color-scheme:dark}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);padding:12px max(12px,env(safe-area-inset-right)) 28px max(12px,env(safe-area-inset-left));-webkit-font-smoothing:antialiased}
-.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
-h1{font-size:18px;font-weight:700;margin:0;letter-spacing:-.015em}
-.meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
-.meta b{color:var(--fg);font-weight:600}
-.pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:var(--surface);white-space:nowrap}
-.pill.pc{color:#2563eb;border-color:rgba(37,99,235,.35);background:rgba(37,99,235,.1)}
-.pill.pcw{color:#d97706;border-color:rgba(217,119,6,.4);background:rgba(217,119,6,.12)}
-.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-.kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 4px;min-width:0;text-align:center}
-.kpi .k{font-size:10.5px;color:var(--muted);white-space:nowrap}
-.kpi .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2;margin-top:2px}
-.kpi .s{font-size:9.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kpi.lead .v{color:var(--accent)}
-section{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:11px 10px;min-width:0}
-h2{font-size:12px;font-weight:600;margin:0 0 8px;letter-spacing:.02em;color:var(--muted)}
-.flow{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px 9px;font-variant-numeric:tabular-nums}
-.flow .n{font-size:19px;font-weight:700}.flow .op{color:var(--muted);font-size:15px}
-.flow .lab{font-size:11px;color:var(--muted);display:block;font-weight:400}.flow .cell{display:flex;flex-direction:column}
-.flow .eq .n{color:var(--accent)}
-.ok{margin-top:10px;font-size:12px;color:var(--accent);background:var(--accent-soft);display:inline-block;padding:4px 9px;border-radius:999px;font-weight:500}
-.ok.bad{color:var(--crit);background:rgba(176,48,48,.12)}
-table{border-collapse:collapse;width:100%;font-size:12px;font-variant-numeric:tabular-nums;table-layout:fixed}
-th,td{padding:6px 2px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line);overflow:hidden}
-thead tr{background:rgba(128,128,128,.13)}
-th{font-size:10px;font-weight:700;padding:8px 0;letter-spacing:-.04em;border-bottom:2px solid var(--line)}
-th:first-child,td:first-child{text-align:left;width:17%;padding-left:4px;font-weight:600}
-th.b,td.b{color:#2563eb}th.o,td.o{color:#d97706}th.g,td.g{color:#16a34a}
-@media (prefers-color-scheme:dark){th.b,td.b{color:#60a5fa}th.o,td.o{color:#fbbf24}th.g,td.g{color:#4ade80}}
-td.z{opacity:.42}td.neg{color:var(--crit)!important;font-weight:700;opacity:1}
-tbody tr:last-child td{border-bottom:none}
-tfoot tr{background:rgba(128,128,128,.10)}
-tfoot td{font-weight:700;border-top:2px solid var(--line);border-bottom:none;padding-top:8px;padding-bottom:8px}
-footer{font-size:11px;color:var(--muted);line-height:1.5;text-align:center}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>암웨이 모바일 3자 소통방</title>
+  <style>
+    /* 한 열 모바일 보고서: 제목 → 보내기 → 주고받은 글 → 핵심 4칸 → 당월 흐름 → 창고 표 → 주문 요약 → 문서 */
+    :root {
+      --bg:#f5f6f4; --surface:#ffffff; --line:#dfe1dd; --fg:#1a1d1a; --muted:#686d68;
+      --accent:#1f6f4a; --accent-soft:#e4f0e9; --warn:#a8690c; --crit:#b03030; --jae:#3f5f9e;
+      --font:"Pretendard","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg:#10130f; --surface:#191d18; --line:#2d332c; --fg:#e8ebe6; --muted:#9aa297;
+        --accent:#54c08a; --accent-soft:#1c2d24; --warn:#e0a84a; --crit:#e07070; --jae:#8fa9dd; color-scheme:dark;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg:#10130f; --surface:#191d18; --line:#2d332c; --fg:#e8ebe6; --muted:#9aa297;
+      --accent:#54c08a; --accent-soft:#1c2d24; --warn:#e0a84a; --crit:#e07070; --jae:#8fa9dd; color-scheme:dark;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+      padding-left:max(12px, env(safe-area-inset-left, 0px));
+      padding-right:max(12px, env(safe-area-inset-right, 0px));
+      padding-block:12px 28px; -webkit-font-smoothing:antialiased;
+    }
+    .wrap { max-width:720px; margin:0 auto; display:flex; flex-direction:column; gap:10px; }
+    header { display:flex; flex-direction:column; gap:5px; }
+    .h-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    h1 { font-size:18px; font-weight:700; margin:0; letter-spacing:-0.015em; }
+    .mini-btn {
+      font:inherit; font-size:11.5px; font-weight:600; padding:4px 9px; border-radius:7px;
+      border:1px solid var(--line); background:var(--surface); color:var(--fg); cursor:pointer; text-decoration:none; white-space:nowrap;
+    }
+    .h-meta { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+    .stamp { font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; margin-left:auto; }
+    .stamp b { color:var(--fg); font-weight:600; }
+    .sig-pill {
+      font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;
+      border:1px solid var(--line); background:var(--surface); white-space:nowrap;
+    }
+    .sig-pill.green { color:#16a34a; border-color:rgba(22,163,74,0.35); background:rgba(22,163,74,0.1); }
+    .sig-pill.orange { color:#ea580c; border-color:rgba(234,88,12,0.4); background:rgba(234,88,12,0.12); }
+    .sig-pill.red { color:#dc2626; border-color:rgba(220,38,38,0.4); background:rgba(220,38,38,0.12); }
+    .sig-pill.pc-personal { color:#2563eb; border-color:rgba(37,99,235,0.35); background:rgba(37,99,235,0.1); }
+    .sig-pill.pc-work { color:#d97706; border-color:rgba(217,119,6,0.4); background:rgba(217,119,6,0.12); }
+    .sig-pill.pc-unknown { color:var(--muted); border-color:var(--line); background:var(--surface); }
+    .pc-tag { font-size:10.5px; padding:1px 6px; border-radius:999px; font-weight:600; margin-left:4px; vertical-align:middle; }
+    .pc-tag.personal { color:#2563eb; background:rgba(37,99,235,0.12); }
+    .pc-tag.work { color:#d97706; background:rgba(217,119,6,0.14); }
+    .pc-tag.unknown { color:var(--muted); background:var(--bg); border:1px solid var(--line); }
+
+    section { background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:11px 12px; min-width:0; }
+    .sec-h { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+    h2 { font-size:12px; font-weight:600; margin:0; letter-spacing:0.02em; color:var(--muted); }
+
+    .sel-row { display:flex; gap:5px; align-items:center; flex-wrap:nowrap; margin-bottom:7px; font-size:12px; }
+    .sel-row label { color:var(--muted); font-weight:600; white-space:nowrap; }
+    select {
+      font:inherit; font-size:12px; font-weight:600; padding:4px 6px; border-radius:6px;
+      border:1px solid var(--line); background:var(--bg); color:var(--fg); min-width:0;
+    }
+    textarea {
+      width:100%; min-height:60px; resize:vertical; font:inherit; font-size:14.5px;
+      padding:8px 10px; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--fg);
+    }
+    .send-row { display:flex; gap:8px; align-items:center; margin-top:7px; }
+    button.btn-primary {
+      font:inherit; font-size:13.5px; font-weight:600; padding:8px 16px; border-radius:8px;
+      border:none; background:var(--accent); color:#ffffff; cursor:pointer; white-space:nowrap;
+    }
+    button.btn-primary:disabled { opacity:0.45; cursor:default; }
+    .hint { font-size:11px; color:var(--muted); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+    .chat { display:flex; flex-direction:column; gap:7px; }
+    .chat.scrollbox { max-height:280px; overflow-y:auto; padding-right:2px; }
+    .msg { border:1px solid var(--line); border-radius:9px; padding:8px 10px; background:var(--bg); min-width:0; }
+    .msg.me { border-left:3px solid var(--accent); }
+    .msg.boss { border-left:3px solid var(--warn); }
+    .msg.sys { border-left:3px solid var(--muted); }
+    .msg.jae { border-left:3px solid var(--jae); }
+    .mh { display:flex; justify-content:space-between; gap:8px; font-size:11px; color:var(--muted); margin-bottom:3px; }
+    .who { font-weight:600; color:var(--fg); }
+    .mt { font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .mb { font-size:12.5px; line-height:1.5; word-break:break-word; }
+    .empty { font-size:12px; color:var(--muted); padding:10px 2px; }
+
+    .kpis { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:6px; }
+    .kpi { background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:8px 6px; min-width:0; text-align:center; }
+    .kpi .k { font-size:10.5px; color:var(--muted); white-space:nowrap; }
+    .kpi .v { font-size:19px; font-weight:700; font-variant-numeric:tabular-nums; line-height:1.2; margin-top:2px; }
+    .kpi .s { font-size:9.5px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .kpi.lead .v { color:var(--accent); }
+
+    details.m-fold { background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:0; overflow:hidden; }
+    details.m-fold > summary {
+      list-style:none; cursor:pointer; padding:11px 13px; font-size:13px; font-weight:600;
+      display:flex; justify-content:space-between; align-items:center; gap:8px; user-select:none;
+    }
+    details.m-fold > summary::-webkit-details-marker { display:none; }
+    details.m-fold > summary::before { content:"▶"; font-size:10px; color:var(--muted); margin-right:6px; transition:transform .15s; }
+    details.m-fold[open] > summary::before { transform:rotate(90deg); }
+    details.m-fold > summary .fold-title { flex:1; min-width:0; }
+    details.m-fold > summary .fold-badge { font-size:11px; font-weight:500; color:var(--muted); white-space:nowrap; }
+    .fold-body { padding:0 12px 13px; border-top:1px solid var(--line); padding-top:11px; }
+
+    .flow { display:flex; align-items:baseline; flex-wrap:wrap; gap:8px 9px; font-variant-numeric:tabular-nums; }
+    .flow .n { font-size:19px; font-weight:700; }
+    .flow .op { color:var(--muted); font-size:15px; }
+    .flow .lab { font-size:11px; color:var(--muted); display:block; font-weight:400; }
+    .flow .cell { display:flex; flex-direction:column; }
+    .flow .cell.eq .n { color:var(--accent); }
+    .ok { margin-top:10px; font-size:12px; color:var(--accent); background:var(--accent-soft);
+          display:inline-block; padding:4px 9px; border-radius:999px; font-weight:500; }
+
+    .scroll { overflow-x:auto; margin:0 -12px; padding:0 12px; }
+    table { border-collapse:collapse; width:100%; font-size:12.5px; font-variant-numeric:tabular-nums; }
+    th, td { padding:6px 5px; text-align:right; white-space:nowrap; border-bottom:1px solid var(--line); }
+    thead tr { background:rgba(128,128,128,0.13); }
+    th { font-size:11.5px; font-weight:700; color:var(--fg); padding:8px 5px; border-bottom:2px solid var(--line); }
+    th.th-blue, td.c-blue { color:#2563eb; }
+    th.th-orange, td.c-orange { color:#d97706; }
+    th.th-green, td.c-green { color:#16a34a; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) th.th-blue, :root:not([data-theme="light"]) td.c-blue { color:#60a5fa; }
+      :root:not([data-theme="light"]) th.th-orange, :root:not([data-theme="light"]) td.c-orange { color:#fbbf24; }
+      :root:not([data-theme="light"]) th.th-green, :root:not([data-theme="light"]) td.c-green { color:#4ade80; }
+    }
+    :root[data-theme="dark"] th.th-blue, :root[data-theme="dark"] td.c-blue { color:#60a5fa; }
+    :root[data-theme="dark"] th.th-orange, :root[data-theme="dark"] td.c-orange { color:#fbbf24; }
+    :root[data-theme="dark"] th.th-green, :root[data-theme="dark"] td.c-green { color:#4ade80; }
+    td.zero { opacity:0.42; }
+    th:first-child, td:first-child { text-align:left; }
+    tbody tr:last-child td { border-bottom:none; }
+    tfoot tr { background:rgba(128,128,128,0.10); }
+    tfoot td { font-weight:700; border-top:2px solid var(--line); border-bottom:none; padding-top:8px; padding-bottom:8px; }
+    .wh { font-weight:600; }
+    .sys-name { display:block; font-size:10px; color:var(--muted); font-weight:400; }
+    .neg, td.neg { color:var(--crit); font-weight:700; }
+    .pill { font-size:11px; padding:2px 7px; border-radius:999px; background:var(--accent-soft); color:var(--accent); font-weight:600; }
+
+    .rows { display:flex; flex-direction:column; gap:8px; }
+    .row { display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:13px; }
+    .row .l { color:var(--muted); min-width:0; }
+    .row .r { font-weight:600; font-variant-numeric:tabular-nums; text-align:right; }
+    .row .r small { display:block; font-weight:400; color:var(--muted); font-size:11px; }
+    .sub-h { font-size:11.5px; font-weight:600; color:var(--muted); margin:12px 0 7px; padding-top:10px; border-top:1px dashed var(--line); }
+
+    footer { font-size:11px; color:var(--muted); line-height:1.5; text-align:center; }
+  
+    #pin-gate {
+      position:fixed; inset:0; z-index:999; background:var(--bg);
+      display:flex; align-items:center; justify-content:center; padding:20px;
+    }
+    #pin-gate.hidden { display:none; }
+    .pin-card {
+      width:100%; max-width:340px; background:var(--surface); border:1px solid var(--line);
+      border-radius:14px; padding:20px 18px; display:flex; flex-direction:column; gap:12px;
+    }
+    .pin-card h2 { font-size:17px; color:var(--fg); margin:0; }
+    .pin-card p { font-size:12.5px; color:var(--muted); margin:0; line-height:1.5; }
+    .pin-card input {
+      font:inherit; font-size:18px; letter-spacing:0.25em; text-align:center; font-weight:700;
+      padding:10px 12px; border-radius:9px; border:1px solid var(--line); background:var(--bg); color:var(--fg);
+    }
+    .pin-err { font-size:12px; color:var(--crit); min-height:16px; }
+
+  </style>
 </head>
 <body>
+<div id="pin-gate">
+  <div class="pin-card">
+    <h2>🔒 암웨이 3자 소통방</h2>
+    <p>실시간 관제 연동을 위해 접속 PIN을 입력해 주세요.</p>
+    <input type="password" id="pin-input" inputmode="numeric" placeholder="PIN 6자리" autocomplete="current-password">
+    <button type="button" class="btn-primary" id="pin-btn" onclick="submitPin()">접속하기</button>
+    <div class="pin-err" id="pin-err"></div>
+  </div>
+</div>
 <div class="wrap">
   <header>
-    <h1>암웨이 재고 집계</h1>
-    <div class="meta"><span class="pill pc">개인PC</span><span>기준 시각 <b>2026-11-14 18:22</b></span><span>리포트 기준일 <b>2026-11-13</b></span></div>
-  </header>
-  <div class="kpis">
-    <div class="kpi lead"><div class="k">가용</div><div class="v">103</div><div class="s">예정·실시간 제외</div></div>
-    <div class="kpi"><div class="k">현재고</div><div class="v">120</div><div class="s">실시간 · 전일 121</div></div>
-    <div class="kpi"><div class="k">출고예정</div><div class="v">17</div><div class="s">실시간출고 1대</div></div>
-    <div class="kpi"><div class="k">미완료</div><div class="v">17</div><div class="s">양품 · 외 회수 0</div></div>
-  </div>
-  <section>
-    <h2>당월 11월 재고 흐름</h2>
-    <div class="flow">
-      <span class="cell"><span class="n">94</span><span class="lab">전월재고</span></span><span class="op">+</span>
-      <span class="cell"><span class="n">64</span><span class="lab">당월입고</span></span><span class="op">−</span>
-      <span class="cell"><span class="n">38</span><span class="lab">당월출고</span></span><span class="op">=</span>
-      <span class="cell eq"><span class="n">120</span><span class="lab">현재고(실시간)</span></span>
+    <div class="h-top">
+      <h1>암웨이 모바일 3자 소통방</h1>
+      <button type="button" class="mini-btn" onclick="lockApp()">🔒 잠금</button>
     </div>
-    <div class="ok">검산 일치 · 9개 창고 전수 불일치 0건 (전일재고 121)</div>
-  </section>
+    <div class="h-meta">
+      <span class="sig-pill green" id="m-sig-jae">재실장: 🟢 대기</span>
+      <span class="sig-pill green" id="m-sig-am">암실장: 🟢 대기</span>
+      <span class="stamp"><span class="sig-pill pc-unknown" id="m-pc-badge" style="margin-right:4px;">PC 확인중</span>기준 <b id="m-stamp">-</b></span>
+    </div>
+  </header>
+
   <section>
-    <h2>11월 실시간 창고별 현황</h2>
-    <table>
-      <thead><tr><th>창고</th><th class="b">전월</th><th class="b">입고</th><th class="o">당월출고</th><th class="o">실시간</th><th class="g">현재고</th><th class="o">예정</th><th class="g">가용</th></tr></thead>
-      <tbody><tr><td>용인센터</td><td class="b">20</td><td class="b">16</td><td class="o">9</td><td class="o z">0</td><td class="g">27</td><td class="o">3</td><td class="g">24</td></tr><tr><td>인천가좌</td><td class="b">37</td><td class="neg">−8</td><td class="o">7</td><td class="o z">0</td><td class="g">22</td><td class="o">6</td><td class="g">16</td></tr><tr><td>충청</td><td class="b">3</td><td class="b">16</td><td class="o">6</td><td class="o z">0</td><td class="g">13</td><td class="o">1</td><td class="g">12</td></tr><tr><td>경남</td><td class="b">7</td><td class="b">16</td><td class="o">3</td><td class="o z">0</td><td class="g">20</td><td class="o">4</td><td class="g">16</td></tr><tr><td>경북</td><td class="b">10</td><td class="b z">0</td><td class="o">4</td><td class="o z">0</td><td class="g">6</td><td class="o">2</td><td class="g">4</td></tr><tr><td>강원</td><td class="b">7</td><td class="b z">0</td><td class="o z">0</td><td class="o z">0</td><td class="g">7</td><td class="o z">0</td><td class="g">7</td></tr><tr><td>전남</td><td class="b">1</td><td class="b">16</td><td class="o">6</td><td class="o">1</td><td class="g">11</td><td class="o z">0</td><td class="g">11</td></tr><tr><td>전북</td><td class="b">9</td><td class="b z">0</td><td class="o">2</td><td class="o z">0</td><td class="g">7</td><td class="o">1</td><td class="g">6</td></tr><tr><td>제주</td><td class="b z">0</td><td class="b">8</td><td class="o">1</td><td class="o z">0</td><td class="g">7</td><td class="o z">0</td><td class="g">7</td></tr></tbody>
-      <tfoot><tr><td>합계</td><td class="b">94</td><td class="b">64</td><td class="o">38</td><td class="o">1</td><td class="g">120</td><td class="o">17</td><td class="g">103</td></tr></tfoot>
-    </table>
+    <div class="sel-row">
+      <label for="m-sender">발신</label>
+      <select id="m-sender">
+        <option value="본부장" selected>본부장</option>
+        <option value="재실장">재실장</option>
+        <option value="암실장">암실장</option>
+      </select>
+      <label for="m-target">수신</label>
+      <select id="m-target">
+        <option value="자동" selected>자동(감지)</option>
+        <option value="전체">전체</option>
+        <option value="암실장">암실장</option>
+        <option value="재실장">재실장</option>
+      </select>
+    </div>
+    <textarea id="m-box" placeholder="메시지 입력 (보내기 또는 Ctrl+Enter)"></textarea>
+    <div class="send-row">
+      <button type="button" class="btn-primary" id="m-send" onclick="sendMobileMsg()">보내기</button>
+      <span class="hint" id="m-hint">실시간 연결 대기 중...</span>
+    </div>
   </section>
-  <footer>집계 숫자만 표시합니다 · 만든 시각 2026-11-14 18:22</footer>
+
+  <section>
+    <div class="sec-h">
+      <h2>주고받은 글 (최신순)</h2>
+      <button type="button" class="mini-btn" onclick="scrollTalkBottom()">⬇ 맨 아래로</button>
+    </div>
+    <div class="chat scrollbox" id="m-talk">
+      <div class="empty">메시지를 불러오는 중입니다...</div>
+    </div>
+  </section>
+
+  <div class="kpis">
+    <div class="kpi lead"><div class="k">가용</div><div class="v" id="k-avail">-</div><div class="s" id="k-avail-sub">-</div></div>
+    <div class="kpi"><div class="k">현재고</div><div class="v" id="k-cur">-</div><div class="s" id="k-cur-sub">-</div></div>
+    <div class="kpi"><div class="k">출고예정</div><div class="v" id="k-res">-</div><div class="s" id="k-res-sub">-</div></div>
+    <div class="kpi"><div class="k">미완료</div><div class="v" id="k-urg">-</div><div class="s" id="k-urg-sub">-</div></div>
+  </div>
+
+  <details class="m-fold">
+    <summary><span class="fold-title" id="m-flow-title">당월 재고 흐름</span><span class="fold-badge" id="m-flow-badge">펼쳐보기</span></summary>
+    <div class="fold-body">
+      <div class="flow">
+        <span class="cell"><span class="n" id="f-prev">-</span><span class="lab">전월재고</span></span>
+        <span class="op">+</span>
+        <span class="cell"><span class="n" id="f-in">-</span><span class="lab">당월입고</span></span>
+        <span class="op">−</span>
+        <span class="cell"><span class="n" id="f-out">-</span><span class="lab">당월출고</span></span>
+        <span class="op">=</span>
+        <span class="cell eq"><span class="n" id="f-cur">-</span><span class="lab">현재고(실시간)</span></span>
+      </div>
+      <div class="ok" id="m-flow-ok">수불 검산 확인 중</div>
+    </div>
+  </details>
+
+  <details class="m-fold">
+    <summary><span class="fold-title" id="m-wh-title">실시간 창고별 현황</span><span class="fold-badge" id="m-wh-badge">펼쳐보기</span></summary>
+    <div class="fold-body">
+      <div class="scroll">
+        <table>
+          <thead>
+            <tr><th>창고</th><th class="th-blue">전월</th><th class="th-blue">입고</th><th class="th-orange">당월출고</th><th class="th-orange">실시간</th><th class="th-green">현재고</th><th class="th-orange">예정</th><th class="th-green">가용</th></tr>
+          </thead>
+          <tbody id="m-wh-body"></tbody>
+          <tfoot id="m-wh-foot"></tfoot>
+        </table>
+      </div>
+      <div class="ok" id="m-wh-ok">창고 상태 확인 중</div>
+    </div>
+  </details>
+
+  <details class="m-fold">
+    <summary><span class="fold-title">MoviqAI 주문 · 문서 장부</span><span class="fold-badge" id="m-mq-badge">펼쳐보기</span></summary>
+    <div class="fold-body">
+      <div class="rows">
+        <div class="row"><span class="l">전체</span><span class="r" id="mq-m-tot">-</span></div>
+        <div class="row"><span class="l">배송완료</span><span class="r" id="mq-m-comp">-</span></div>
+        <div class="row"><span class="l">취소</span><span class="r" id="mq-m-canc">-</span></div>
+        <div class="row"><span class="l">미완료 집중</span><span class="r" id="mq-m-urg">-</span></div>
+        <div class="row"><span class="l">실시간출고</span><span class="r" id="mq-m-rt">-</span></div>
+        <div class="row"><span class="l">스케줄확정 · 접수</span><span class="r" id="mq-m-sr">-</span></div>
+      </div>
+      <div class="ok" id="m-mq-ok">감시 상태 확인 중</div>
+      <div class="sub-h">문서 · 장부 (완료 일시)</div>
+      <div class="rows">
+        <div class="row"><span class="l">Daily 리포트 확정본</span><span class="r" id="doc-rep">-</span></div>
+        <div class="row"><span class="l">재고추적 기준 장부</span><span class="r" id="doc-inv">-</span></div>
+        <div class="row"><span class="l">결산 요약</span><span class="r" id="doc-settle">-</span></div>
+      </div>
+    </div>
+  </details>
+
+  <footer>관제 서버(8768) 실시간 연동 · 3자 소통방</footer>
 </div>
+
+<script>
+  function esc(t) {
+    const d = document.createElement('div');
+    d.textContent = (t === null || t === undefined) ? '' : String(t);
+    return d.innerHTML;
+  }
+  function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = (cur === 'dark') ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('amway_m_theme', next); } catch (e) {}
+  }
+  try {
+    const savedTheme = localStorage.getItem('amway_m_theme');
+    if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+  } catch (e) {}
+
+  function scrollTalkBottom() {
+    const el = document.getElementById('m-talk');
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }
+
+  function updateSigPill(id, label, info) {
+    const el = document.getElementById(id);
+    if (!el || !info) return;
+    if (!info.alive) {
+      el.className = 'sig-pill red';
+      el.textContent = `${label}: 🔴 부재`;
+    } else if (info.desc && (info.desc.includes('처리중') || info.desc.includes('접수'))) {
+      el.className = 'sig-pill orange';
+      el.textContent = `${label}: 🟠 접수`;
+      el.title = info.desc;
+    } else {
+      el.className = 'sig-pill green';
+      el.textContent = `${label}: 🟢 대기`;
+    }
+  }
+
+  function renderMobile(data) {
+    if (!data) return;
+    const stamp = document.getElementById('m-stamp');
+    if (stamp) stamp.textContent = data.server_time || '-';
+
+    const pcInfo = data.pc_info || {};
+    const hostPc = pcInfo.host || { label: '미상', kind: 'unknown' };
+    const pcBadge = document.getElementById('m-pc-badge');
+    if (pcBadge) {
+      pcBadge.className = `sig-pill pc-${hostPc.kind || 'unknown'}`;
+      pcBadge.textContent = hostPc.label || '미상';
+      if (hostPc.raw) pcBadge.title = `실행 PC: ${hostPc.raw}`;
+    }
+
+    if (data.siljang) {
+      updateSigPill('m-sig-jae', '재실장', data.siljang.재실장);
+      updateSigPill('m-sig-am', '암실장', data.siljang.암실장);
+    }
+
+    const talk = document.getElementById('m-talk');
+    if (talk && Array.isArray(data.messages)) {
+      if (!data.messages.length) {
+        talk.innerHTML = '<div class="empty">아직 주고받은 글이 없습니다.</div>';
+      } else {
+        const rev = data.messages.slice().reverse();
+        talk.innerHTML = rev.map(m => {
+          const s = m.sender || '?';
+          const cls = s === '암실장' ? 'me' : (s === '본부장' ? 'boss' : (s === '재실장' ? 'jae' : 'sys'));
+          const toStr = m.to ? ` → ${esc(m.to)}` : '';
+          const rawT = String(m.time || '');
+          const when = esc(m.date ? (String(m.date).slice(5, 10) + ' ' + rawT.slice(0, 5)) : (rawT.length >= 16 ? rawT.slice(5, 16) : rawT.slice(0, 5)));
+          const body = esc(m.text || m.message || '').split('\n').join('<br>');
+          return `<div class="msg ${cls}"><div class="mh"><span class="who">${esc(s)}${toStr}</span><span class="mt">${when}</span></div><div class="mb">${body}</div></div>`;
+        }).join('');
+      }
+    }
+
+    const wh = data.warehouses || {};
+    const tot = wh.total || {};
+    const items = wh.items || [];
+    const outCnt = items.filter(w => w.avail === 0).length;
+    const warnCnt = items.filter(w => w.avail > 0 && w.avail <= 3).length;
+
+    const setT = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    setT('k-avail', tot.avail ?? '-');
+    setT('k-avail-sub', `부족 ${warnCnt} · 없음 ${outCnt}개 창고`);
+    setT('k-cur', tot.current_live ?? tot.current ?? '-');
+    setT('k-cur-sub', `실시간 · 전일 ${tot.current ?? '-'}`);
+    setT('k-res', tot.reserved ?? '-');
+    setT('k-res-sub', `실시간출고 ${tot.realtime_out ?? 0}대`);
+
+    const sc = (data.watcher && data.watcher.counts) ? data.watcher.counts : ((data.moviqai && data.moviqai.summary) ? data.moviqai.summary : {});
+    const urg = (sc.urgent !== undefined) ? sc.urgent : ((sc.schedule || 0) + (sc.receipt || 0) + (sc.unlinked || 0));
+    setT('k-urg', urg);
+    setT('k-urg-sub', `양품 기준 · 외 회수 ${sc.urgent_collect || 0}`);
+
+    const rm = data.report_metrics || {};
+    setT('m-flow-title', `당월 ${rm['당월_월'] || ''} 재고 흐름`.trim());
+    setT('m-wh-title', `${rm['당월_월'] ? rm['당월_월'] + ' ' : ''}실시간 창고별 현황`);
+    setT('f-prev', tot.prev_month_stock ?? '-');
+    setT('f-in', (tot.inbound && tot.inbound.net !== undefined) ? tot.inbound.net : '-');
+    setT('f-out', tot.month_out ?? '-');
+    const curLive = tot.current_live ?? tot.current ?? '-';
+    setT('f-cur', curLive);
+    const inNet = (tot.inbound && tot.inbound.net !== undefined) ? tot.inbound.net : 0;
+    const eqOk = (Number(tot.prev_month_stock || 0) + Number(inNet) - Number(tot.month_out || 0)) === Number(curLive || 0);
+    const prevDayNote = (tot.current !== undefined && tot.current !== curLive) ? ` (전일재고 ${tot.current})` : '';
+    setT('m-flow-ok', (eqOk ? `검산 일치 · ${items.length}개 창고 전수 불일치 0건` : '수불 확인 필요') + prevDayNote);
+    setT('m-flow-badge', `${curLive}대 · ${eqOk ? '일치' : '확인'}`);
+
+    const tbody = document.getElementById('m-wh-body');
+    const tfoot = document.getElementById('m-wh-foot');
+    const cellCls = (base, val) => {
+      const n = Number(val);
+      if (!Number.isNaN(n) && n < 0) return 'neg';
+      if (!Number.isNaN(n) && n === 0) return `${base} zero`;
+      return base;
+    };
+    if (tbody) {
+      tbody.innerHTML = items.map(w => {
+        const net = (w.inbound && w.inbound.net !== undefined) ? w.inbound.net : 0;
+        const netStr = net < 0 ? `−${Math.abs(net)}` : `${net}`;
+        const prevV = w.prev_month_stock ?? 0;
+        const mOutV = w.month_out ?? '-';
+        const rtV = w.realtime_out ?? 0;
+        const curV = w.current_live ?? w.current ?? 0;
+        const resV = w.reserved ?? 0;
+        const avV = w.avail ?? 0;
+        return `<tr>
+          <td><span class="wh">${esc(w.name)}</span><span class="sys-name">${esc(w.sys_name || '')}</span></td>
+          <td class="${cellCls('c-blue', prevV)}">${prevV}</td>
+          <td class="${cellCls('c-blue', net)}">${netStr}</td>
+          <td class="${cellCls('c-orange', mOutV)}">${mOutV}</td>
+          <td class="${cellCls('c-orange', rtV)}">${rtV}</td>
+          <td class="${cellCls('c-green', curV)}">${curV}</td>
+          <td class="${cellCls('c-orange', resV)}">${resV}</td>
+          <td class="${cellCls('c-green', avV)}">${avV}</td>
+        </tr>`;
+      }).join('');
+    }
+    if (tfoot) {
+      const tPrev = tot.prev_month_stock ?? 0;
+      const tMOut = tot.month_out ?? '-';
+      const tRt = tot.realtime_out ?? 0;
+      const tCur = tot.current_live ?? tot.current ?? 0;
+      const tRes = tot.reserved ?? 0;
+      const tAv = tot.avail ?? 0;
+      tfoot.innerHTML = `<tr>
+        <td>합계</td>
+        <td class="${cellCls('c-blue', tPrev)}">${tPrev}</td>
+        <td class="${cellCls('c-blue', inNet)}">${inNet}</td>
+        <td class="${cellCls('c-orange', tMOut)}">${tMOut}</td>
+        <td class="${cellCls('c-orange', tRt)}">${tRt}</td>
+        <td class="${cellCls('c-green', tCur)}">${tCur}</td>
+        <td class="${cellCls('c-orange', tRes)}">${tRes}</td>
+        <td class="${cellCls('c-green', tAv)}">${tAv}</td>
+      </tr>`;
+    }
+    setT('m-wh-ok', `안전 ${items.length - outCnt - warnCnt} · 부족주의 ${warnCnt} · 재고없음 ${outCnt}`);
+    setT('m-wh-badge', `${items.length}개 창고 · 부족 ${warnCnt}`);
+
+    setT('mq-m-tot', `${(sc.total || 0).toLocaleString()}건`);
+    setT('mq-m-comp', `${(sc.completed || 0).toLocaleString()}건`);
+    setT('mq-m-canc', `${(sc.cancelled || 0).toLocaleString()}건`);
+    setT('mq-m-urg', `${urg}건`);
+    setT('mq-m-rt', `${tot.realtime_out ?? 0}대`);
+    setT('mq-m-sr', `${sc.schedule || 0} · ${sc.receipt || 0}건`);
+    const mtime = (data.watcher && data.watcher.mtime_str) ? data.watcher.mtime_str : (data.moviqai && data.moviqai.mtime_str ? data.moviqai.mtime_str : '-');
+    setT('m-mq-ok', `감시 갱신 ${mtime}`);
+    setT('m-mq-badge', `전체 ${(sc.total || 0).toLocaleString()}건`);
+
+    const pcTagHtml = (pcObj) => {
+      const p = pcObj || { label: '미상', kind: 'unknown' };
+      return `<span class="pc-tag ${esc(p.kind || 'unknown')}">${esc(p.label || '미상')}</span>`;
+    };
+    const rep = data.report || {};
+    const docRep = document.getElementById('doc-rep');
+    if (docRep) {
+      docRep.innerHTML = (rep.completed
+        ? `<span class="pill">완료</span>${pcTagHtml(pcInfo.report)}<small>${esc(rep.time || '-')}</small>`
+        : `${pcTagHtml(pcInfo.report)}<small>미완료</small>`);
+    }
+    const inv = data.inventory_track || {};
+    const docInv = document.getElementById('doc-inv');
+    if (docInv) {
+      docInv.innerHTML = (inv.completed
+        ? `<span class="pill">완료</span>${pcTagHtml(pcInfo.inventory_track)}<small>${esc(inv.time || '-')}</small>`
+        : `${pcTagHtml(pcInfo.inventory_track)}<small>미완료</small>`);
+    }
+    const stl = data.settlement || {};
+    const docSettle = document.getElementById('doc-settle');
+    if (docSettle) {
+      const stlStatus = stl.provisional ? '가결산' : '결산';
+      const stlMeta = [stl.month || '', stl.time || ''].filter(Boolean).join(' · ') || '-';
+      docSettle.innerHTML = `<span class="pill">${stlStatus}</span>${pcTagHtml(stl.pc || pcInfo.settle)}<small>${esc(stlMeta)}</small>`;
+    }
+
+    const hint = document.getElementById('m-hint');
+    if (hint) hint.textContent = '실시간 연결됨 — 3자 소통방 즉시 반영';
+  }
+
+
+  let API_BASE = '';
+  let ACTIVE_PIN = '';
+  try { ACTIVE_PIN = localStorage.getItem('amway_mob_pin') || ''; } catch (e) {}
+
+  async function loadApiConfig() {
+    const r = await fetch('./api_config.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('연결 설정 파일을 불러올 수 없습니다');
+    const cfg = await r.json();
+    API_BASE = String(cfg.apiBase || '').replace(/\/+$/, '');
+    return API_BASE;
+  }
+
+  function lockApp() {
+    ACTIVE_PIN = '';
+    try { localStorage.removeItem('amway_mob_pin'); } catch (e) {}
+    document.getElementById('pin-input').value = '';
+    document.getElementById('pin-err').textContent = '';
+    document.getElementById('pin-gate').classList.remove('hidden');
+  }
+
+  async function verifyAndStart(pin) {
+    if (!API_BASE) await loadApiConfig();
+    const r = await fetch(API_BASE + '/api/pin_check', {
+      headers: { 'X-Amway-Pin': pin }
+    });
+    if (!r.ok) {
+      let msg = 'PIN이 올바르지 않습니다';
+      try { const j = await r.json(); if (j && j.msg) msg = j.msg; } catch (e) {}
+      throw new Error(msg);
+    }
+    ACTIVE_PIN = pin;
+    try { localStorage.setItem('amway_mob_pin', pin); } catch (e) {}
+    document.getElementById('pin-gate').classList.add('hidden');
+    await refreshNow();
+  }
+
+  async function submitPin() {
+    const inp = document.getElementById('pin-input');
+    const err = document.getElementById('pin-err');
+    const btn = document.getElementById('pin-btn');
+    const pin = (inp.value || '').trim();
+    if (!pin) { err.textContent = 'PIN을 입력해 주세요.'; return; }
+    btn.disabled = true;
+    err.textContent = '연결 확인 중...';
+    try {
+      await verifyAndStart(pin);
+      err.textContent = '';
+    } catch (e) {
+      err.textContent = e.message || '접속 실패 (PC 서버/터널 상태 확인)';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function refreshNow() {
+    try {
+      if (!ACTIVE_PIN || !API_BASE) return;
+      const r = await fetch(API_BASE + '/api/status', { headers: { 'X-Amway-Pin': ACTIVE_PIN } });
+      if (r.status === 403) { lockApp(); return; }
+      if (!r.ok) return;
+      const d = await r.json();
+      renderMobile(d);
+    } catch (e) {}
+  }
+
+  async function sendMobileMsg() {
+    const box = document.getElementById('m-box');
+    const btn = document.getElementById('m-send');
+    const hint = document.getElementById('m-hint');
+    const sender = document.getElementById('m-sender').value;
+    const target = document.getElementById('m-target').value;
+    const msg = (box.value || '').trim();
+    if (!msg) return;
+    btn.disabled = true;
+    hint.textContent = '전송 중...';
+    try {
+      const r = await fetch(API_BASE + '/api/send_message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Amway': '1', 'X-Amway-Pin': ACTIVE_PIN },
+        body: JSON.stringify({ sender, target, message: msg })
+      });
+      const res = await r.json();
+      if (r.ok && res.ok) {
+        box.value = '';
+        hint.textContent = '전송 완료';
+        await refreshNow();
+      } else {
+        hint.textContent = res.msg || '전송 실패';
+      }
+    } catch (e) {
+      hint.textContent = '전송 오류';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById('m-box').addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      sendMobileMsg();
+    }
+  });
+
+  document.getElementById('pin-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); submitPin(); }
+  });
+  (async () => {
+    try {
+      await loadApiConfig();
+      if (ACTIVE_PIN) {
+        await verifyAndStart(ACTIVE_PIN);
+      }
+    } catch (e) {
+      const err = document.getElementById('pin-err');
+      if (err) err.textContent = 'PC 관제 서버 연결 대기 중...';
+    }
+  })();
+  setInterval(refreshNow, 3000);
+</script>
 </body>
 </html>
