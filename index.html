@@ -46,6 +46,9 @@
     }
     .sig-pill.green { color:#16a34a; border-color:rgba(22,163,74,0.35); background:rgba(22,163,74,0.1); }
     .sig-pill.orange { color:#ea580c; border-color:rgba(234,88,12,0.4); background:rgba(234,88,12,0.12); }
+    .sig-pill.purple { color:#7c3aed; border-color:rgba(124,58,237,0.4); background:rgba(124,58,237,0.12); }
+    .sig-pill.blue { color:#2563eb; border-color:rgba(37,99,235,0.4); background:rgba(37,99,235,0.12); }
+    .sig-pill.amber { color:#d97706; border-color:rgba(217,119,6,0.4); background:rgba(217,119,6,0.12); }
     .sig-pill.red { color:#dc2626; border-color:rgba(220,38,38,0.4); background:rgba(220,38,38,0.12); }
     .sig-pill.pc-personal { color:#2563eb; border-color:rgba(37,99,235,0.35); background:rgba(37,99,235,0.1); }
     .sig-pill.pc-work { color:#d97706; border-color:rgba(217,119,6,0.4); background:rgba(217,119,6,0.12); }
@@ -313,20 +316,28 @@
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }
 
+  const MOB_SIG_MAP = {
+    '접수':   { cls: 'orange', icon: '🟠', text: '접수' },
+    '협의':   { cls: 'purple', icon: '🟣', text: '협의' },
+    '작업중': { cls: 'blue',   icon: '🔵', text: '작업중' },
+    '보고':   { cls: 'amber',  icon: '🟡', text: '보고' },
+    '대기':   { cls: 'green',  icon: '🟢', text: '대기' },
+  };
   function updateSigPill(id, label, info) {
     const el = document.getElementById(id);
     if (!el || !info) return;
     if (!info.alive) {
       el.className = 'sig-pill red';
       el.textContent = `${label}: 🔴 부재`;
-    } else if (info.desc && (info.desc.includes('처리중') || info.desc.includes('접수'))) {
-      el.className = 'sig-pill orange';
-      el.textContent = `${label}: 🟠 접수`;
-      el.title = info.desc;
-    } else {
-      el.className = 'sig-pill green';
-      el.textContent = `${label}: 🟢 대기`;
+      el.title = info.desc || `${label} 부재/오프라인`;
+      return;
     }
+    const head = String(info.desc || '').trim().split(/[\s(]/)[0];
+    const key = MOB_SIG_MAP[head] ? head : (info.desc && info.desc.includes('처리중') ? '작업중' : '대기');
+    const st = MOB_SIG_MAP[key];
+    el.className = `sig-pill ${st.cls}`;
+    el.textContent = `${label}: ${st.icon} ${st.text}`;
+    el.title = info.desc || `${label} ${st.text}`;
   }
 
   function renderMobile(data) {
