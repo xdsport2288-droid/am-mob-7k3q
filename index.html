@@ -196,6 +196,7 @@
       <span class="sig-pill green" id="m-sig-am">암실장: 🟢 대기</span>
       <span class="stamp"><span class="sig-pill pc-unknown" id="m-pc-badge" style="margin-right:4px;">PC 확인중</span>기준 <b id="m-stamp">-</b></span>
     </div>
+    <div id="m-sig-task" style="display:none; font-size:11.5px; color:var(--muted); margin-top:2px; line-height:1.35; word-break:keep-all;"></div>
   </header>
 
   <section>
@@ -323,21 +324,40 @@
     '보고':   { cls: 'amber',  icon: '🟡', text: '보고' },
     '대기':   { cls: 'green',  icon: '🟢', text: '대기' },
   };
+  function fmtElapsedMob(sec) {
+    if (sec == null || isNaN(sec)) return '';
+    const s = Math.max(0, Math.floor(Number(sec)));
+    if (s < 60) return `${s}초째`;
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}분째`;
+    const h = Math.floor(m / 60);
+    const rm = m % 60;
+    return rm > 0 ? `${h}시간 ${rm}분째` : `${h}시간째`;
+  }
+  function resolveMobSigState(info) {
+    if (!info || !info.alive || info.state === '부재') return '부재';
+    if (info.state && MOB_SIG_MAP[info.state]) return info.state;
+    const head = String(info.desc || '').trim().split(/[\s(]/)[0];
+    if (MOB_SIG_MAP[head]) return head;
+    if (info.desc && info.desc.includes('처리중')) return '작업중';
+    return '대기';
+  }
   function updateSigPill(id, label, info) {
     const el = document.getElementById(id);
     if (!el || !info) return;
-    if (!info.alive) {
+    const key = resolveMobSigState(info);
+    const elap = fmtElapsedMob(info.elapsed_sec);
+    const taskTxt = String(info.task || '').trim();
+    if (key === '부재') {
       el.className = 'sig-pill red';
       el.textContent = `${label}: 🔴 부재`;
       el.title = info.desc || `${label} 부재/오프라인`;
       return;
     }
-    const head = String(info.desc || '').trim().split(/[\s(]/)[0];
-    const key = MOB_SIG_MAP[head] ? head : (info.desc && info.desc.includes('처리중') ? '작업중' : '대기');
     const st = MOB_SIG_MAP[key];
     el.className = `sig-pill ${st.cls}`;
-    el.textContent = `${label}: ${st.icon} ${st.text}`;
-    el.title = info.desc || `${label} ${st.text}`;
+    el.textContent = `${label}: ${st.icon} ${st.text}${elap ? ' ' + elap : ''}`;
+    el.title = [st.text + (elap ? ' ' + elap : ''), taskTxt, info.desc].filter(Boolean).join(' · ');
   }
 
   function renderMobile(data) {
@@ -357,6 +377,24 @@
     if (data.siljang) {
       updateSigPill('m-sig-jae', '재실장', data.siljang.재실장);
       updateSigPill('m-sig-am', '암실장', data.siljang.암실장);
+      const taskBar = document.getElementById('m-sig-task');
+      if (taskBar) {
+        const lines = [];
+        for (const [nm, inf] of [['재실장', data.siljang.재실장], ['암실장', data.siljang.암실장]]) {
+          if (!inf || !inf.alive) continue;
+          const t = String(inf.task || '').trim();
+          const st = resolveMobSigState(inf);
+          const elap = fmtElapsedMob(inf.elapsed_sec);
+          if (t) lines.push(`${nm}(${st}${elap ? ' ' + elap : ''}): ${t}`);
+        }
+        if (lines.length) {
+          taskBar.textContent = '📌 ' + lines.join(' / ');
+          taskBar.style.display = 'block';
+        } else {
+          taskBar.textContent = '';
+          taskBar.style.display = 'none';
+        }
+      }
     }
 
     const talk = document.getElementById('m-talk');
