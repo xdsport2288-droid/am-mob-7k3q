@@ -552,6 +552,16 @@
     return API_BASE;
   }
 
+  async function apiFetch(path, options) {
+    if (!API_BASE) await loadApiConfig();
+    try {
+      const r = await fetch(API_BASE + path, options);
+      if (r.status < 500) return r;
+    } catch (e) {}
+    await loadApiConfig();
+    return await fetch(API_BASE + path, options);
+  }
+
   function lockApp() {
     ACTIVE_PIN = '';
     try { localStorage.removeItem('amway_mob_pin'); } catch (e) {}
@@ -561,8 +571,7 @@
   }
 
   async function verifyAndStart(pin) {
-    if (!API_BASE) await loadApiConfig();
-    const r = await fetch(API_BASE + '/api/pin_check', {
+    const r = await apiFetch('/api/pin_check', {
       headers: { 'X-Amway-Pin': pin }
     });
     if (!r.ok) {
@@ -596,8 +605,8 @@
 
   async function refreshNow() {
     try {
-      if (!ACTIVE_PIN || !API_BASE) return;
-      const r = await fetch(API_BASE + '/api/status', { headers: { 'X-Amway-Pin': ACTIVE_PIN } });
+      if (!ACTIVE_PIN) return;
+      const r = await apiFetch('/api/status', { headers: { 'X-Amway-Pin': ACTIVE_PIN } });
       if (r.status === 403) { lockApp(); return; }
       if (!r.ok) return;
       const d = await r.json();
@@ -616,7 +625,7 @@
     btn.disabled = true;
     hint.textContent = '전송 중...';
     try {
-      const r = await fetch(API_BASE + '/api/send_message', {
+      const r = await apiFetch('/api/send_message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Amway': '1', 'X-Amway-Pin': ACTIVE_PIN },
         body: JSON.stringify({ sender, target, message: msg })
